@@ -37,8 +37,15 @@ object MockUtil {
 
     private fun getRandomBrandName() = brandNames.random()
 
+    private val imageUrls = listOf(
+        "https://raw.githubusercontent.com/UKMIITB/Decathlon/844135affc43ab9288e649e3e7b07c8b8a07d7a1/storage/shoe_1.jpg",
+        "https://raw.githubusercontent.com/UKMIITB/Decathlon/844135affc43ab9288e649e3e7b07c8b8a07d7a1/storage/shoe_10.jpg",
+        "https://raw.githubusercontent.com/UKMIITB/Decathlon/844135affc43ab9288e649e3e7b07c8b8a07d7a1/storage/shoe_2.jpg",
+        "https://raw.githubusercontent.com/UKMIITB/Decathlon/844135affc43ab9288e649e3e7b07c8b8a07d7a1/storage/shoe_3.jpg"
+    )
+
     private fun getImageUrl() =
-        "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"
+
 
     private val homeItemsDummyList = (1..100).map {
         HomeItem(
