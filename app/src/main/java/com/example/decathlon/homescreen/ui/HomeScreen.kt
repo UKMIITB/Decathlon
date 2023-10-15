@@ -1,8 +1,10 @@
 package com.example.decathlon.homescreen.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Button
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
@@ -41,12 +44,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
@@ -54,6 +61,8 @@ import com.example.decathlon.R
 import com.example.decathlon.homescreen.model.network.HomeItem
 import com.example.decathlon.homescreen.model.view.HomeScreenSortOptions
 import com.example.decathlon.homescreen.viewmodel.HomeViewModel
+import com.example.decathlon.util.isEmpty
+import com.example.decathlon.util.shimmerEffect
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
@@ -64,7 +73,6 @@ import kotlinx.coroutines.launch
 @Destination
 @Composable
 fun HomeScreen(
-    navigator: DestinationsNavigator,
     homeViewModel: HomeViewModel = hiltViewModel()
 ) {
 
@@ -75,6 +83,7 @@ fun HomeScreen(
 
     val searchQuery by homeViewModel.searchQuery.collectAsStateWithLifecycle()
     val activeSort by homeViewModel.activeSort.collectAsStateWithLifecycle()
+    val homeScreenItems = homeViewModel.homeScreenItemsPager.collectAsLazyPagingItems()
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -105,12 +114,14 @@ fun HomeScreen(
         sheetContent = {
             HomeScreenBottomSheetContent(
                 activeSort = activeSort,
-                onSortOptionClicked = homeViewModel::updateActiveSort
+                onSortOptionClicked = {
+                    homeViewModel.updateActiveSort(activeSort = it)
+                    homeViewModel.updateBottomSheetUIState(showBottomSheet = false)
+                }
             )
         }, content = {
             Scaffold(topBar = {
                 TopBarContent(
-                    onNavigationIconClicked = navigator::navigateUp,
                     onSearchIconClicked = {
                         keyboardController?.hide()
                         focusManager.clearFocus()
@@ -130,7 +141,7 @@ fun HomeScreen(
                             .padding(it)
                             .fillMaxSize()
                     ) {
-                        HomeScreenGridContent(homeViewModel = homeViewModel)
+                        HomeScreenGridContent(homeScreenItems = homeScreenItems)
                     }
                 }
             )
@@ -139,7 +150,6 @@ fun HomeScreen(
 
 @Composable
 private fun TopBarContent(
-    onNavigationIconClicked: () -> Unit,
     onSearchIconClicked: () -> Unit,
     onFilterIconClicked: () -> Unit,
     searchQuery: String,
@@ -153,13 +163,6 @@ private fun TopBarContent(
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painter = painterResource(id = R.drawable.outline_arrow_back_24),
-            contentDescription = "",
-            modifier = Modifier
-                .size(32.dp)
-                .clickable { onNavigationIconClicked() })
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         OutlinedTextField(
             value = searchQuery,
@@ -167,9 +170,11 @@ private fun TopBarContent(
             modifier = Modifier.weight(1f),
             placeholder = { Text(text = "Search") },
             trailingIcon = {
-                Icon(painter = painterResource(id = R.drawable.baseline_search_24),
-                    contentDescription = "",
-                    modifier = Modifier.clickable { onSearchIconClicked() })
+                if (searchQuery.isNotEmpty()) {
+                    Icon(painter = painterResource(id = R.drawable.outline_close_24),
+                        contentDescription = "",
+                        modifier = Modifier.clickable { onSearchQueryChanged("") })
+                }
             },
             singleLine = true,
             maxLines = 1,
@@ -196,15 +201,52 @@ private fun TopBarContent(
 }
 
 @Composable
-private fun HomeScreenGridContent(homeViewModel: HomeViewModel) {
-    LazyVerticalGrid(columns = GridCells.Fixed(count = 2), content = {
-        item {
-            HomeScreenGridItem(homeItem = homeViewModel.homeItem1)
+private fun HomeScreenGridContent(homeScreenItems: LazyPagingItems<HomeItem>) {
+
+    if (homeScreenItems.isEmpty()) {
+        HomeScreenGridEmptyState()
+    }
+
+    homeScreenItems.apply {
+        when (loadState.refresh) {
+            is LoadState.Error -> {
+                val errorState = loadState.refresh as LoadState.Error
+
+                HomeScreenGridErrorState(
+                    errorDescription = errorState.error.message ?: "",
+                    onRetryClicked = { retry() }
+                )
+            }
+
+            else -> Unit
         }
-        item {
-            HomeScreenGridItem(homeItem = homeViewModel.homeItem2)
-        }
-    })
+    }
+
+    LazyVerticalGrid(columns = GridCells.Fixed(count = 2),
+        content = {
+
+            items(count = homeScreenItems.itemCount) {
+                HomeScreenGridItem(homeItem = homeScreenItems[it]!!)
+            }
+
+            homeScreenItems.apply {
+                when {
+                    loadState.refresh is LoadState.Loading -> {
+                        items(count = 8) {
+                            HomeScreenGridShimmerItem()
+                        }
+                    }
+
+                    loadState.append is LoadState.Loading -> {
+                        items(count = 2) {
+                            HomeScreenGridShimmerItem()
+                        }
+                    }
+
+                    else -> Unit
+                }
+            }
+        })
 }
 
 @OptIn(ExperimentalGlideComposeApi::class)
@@ -325,5 +367,110 @@ private fun FilterOptionItem(
                 modifier = Modifier.size(24.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun HomeScreenGridShimmerItem() {
+    Column(modifier = Modifier
+        .fillMaxWidth()
+        .border(width = 1.dp, color = Color.LightGray.copy(alpha = 0.4f))
+        .clickable { }) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .background(color = Color.LightGray.copy(alpha = 0.1f))
+                .shimmerEffect(),
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .width(40.dp)
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .width(40.dp)
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .width(40.dp)
+                .shimmerEffect()
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@Composable
+private fun HomeScreenGridErrorState(
+    errorDescription: String,
+    onRetryClicked: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.baseline_error_outline_24),
+            contentDescription = "",
+            modifier = Modifier.size(100.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Uh Oh. Seems like we have encountered an error. Please try again later.",
+            fontSize = 16.sp
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = errorDescription, fontSize = 12.sp)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = onRetryClicked) {
+            Text(text = "Retry")
+        }
+    }
+}
+
+@Composable
+private fun HomeScreenGridEmptyState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.baseline_hourglass_empty_24),
+            contentDescription = "",
+            modifier = Modifier.size(100.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Oops. We couldn't find any items matching your search. Please try again with a different search query.",
+            fontSize = 16.sp
+        )
     }
 }
