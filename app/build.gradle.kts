@@ -20,6 +20,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        buildConfigField(type = "Boolean", name = "IS_MOCK_ENABLED", value = "true")
     }
 
     buildTypes {
@@ -39,6 +40,7 @@ android {
         jvmTarget = "1.8"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
     composeOptions {
