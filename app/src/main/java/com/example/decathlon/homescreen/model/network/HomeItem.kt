@@ -1,4 +1,4 @@
-package com.example.decathlon.homescreen.model
+package com.example.decathlon.homescreen.model.network
 
 data class HomeItem(
     val name: String,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ContentAlpha
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
@@ -50,7 +51,8 @@ import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.bumptech.glide.integration.compose.placeholder
 import com.example.decathlon.R
-import com.example.decathlon.homescreen.model.HomeItem
+import com.example.decathlon.homescreen.model.network.HomeItem
+import com.example.decathlon.homescreen.model.view.HomeScreenSortOptions
 import com.example.decathlon.homescreen.viewmodel.HomeViewModel
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
@@ -72,6 +74,7 @@ fun HomeScreen(
     val bottomSheetUIState by homeViewModel.bottomSheetUIState.collectAsStateWithLifecycle()
 
     val searchQuery by homeViewModel.searchQuery.collectAsStateWithLifecycle()
+    val activeSort by homeViewModel.activeSort.collectAsStateWithLifecycle()
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -100,7 +103,10 @@ fun HomeScreen(
 
     ModalBottomSheetLayout(sheetState = bottomSheetState,
         sheetContent = {
-            HomeScreenBottomSheetContent()
+            HomeScreenBottomSheetContent(
+                activeSort = activeSort,
+                onSortOptionClicked = homeViewModel::updateActiveSort
+            )
         }, content = {
             Scaffold(topBar = {
                 TopBarContent(
@@ -259,37 +265,65 @@ private fun HomeScreenGridItem(homeItem: HomeItem) {
 }
 
 @Composable
-private fun HomeScreenBottomSheetContent() {
-    BottomSheetSortContent()
+private fun HomeScreenBottomSheetContent(
+    activeSort: HomeScreenSortOptions,
+    onSortOptionClicked: (HomeScreenSortOptions) -> Unit
+) {
+    BottomSheetFilterOptionsContent(
+        activeSort = activeSort,
+        onSortOptionClicked = onSortOptionClicked
+    )
 }
 
 @Composable
-private fun BottomSheetSortContent() {
+private fun BottomSheetFilterOptionsContent(
+    activeSort: HomeScreenSortOptions,
+    onSortOptionClicked: (HomeScreenSortOptions) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 32.dp)
+            .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 24.dp)
     ) {
         Text("SORT BY", fontWeight = FontWeight.Light)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Text(text = "Most Relevant")
+        Divider()
 
-        Spacer(modifier = Modifier.height(16.dp))
+        HomeScreenSortOptions.entries.forEach {
+            FilterOptionItem(
+                text = it.value,
+                isSelected = activeSort == it,
+                onClick = { onSortOptionClicked.invoke(it) })
+        }
+    }
+}
 
-        Text(text = "Price: Low to High")
+@Composable
+private fun FilterOptionItem(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = text)
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-        Text(text = "Price: High to Low")
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Name: A to Z")
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(text = "Name: Z to A")
+        if (isSelected) {
+            Icon(
+                painter = painterResource(id = R.drawable.baseline_check_24),
+                contentDescription = "",
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
