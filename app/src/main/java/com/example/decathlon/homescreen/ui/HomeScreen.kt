@@ -193,7 +193,7 @@ private fun TopBarContent(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(color = Color.LightGray.copy(alpha = 0.75f))
+            .background(color = Color.LightGray.copy(alpha = 0.5f))
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
