@@ -76,20 +76,4 @@ class HomeViewModel @Inject constructor(
     fun updateActiveSort(activeSort: HomeScreenSortOptions) {
         _activeSort.update { activeSort }
     }
-
-    val homeItem1 = HomeItem(
-        name = "Domyos",
-        id = "123",
-        price = 1000f,
-        imageUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
-        brand = "Decathlon"
-    )
-
-    val homeItem2 = HomeItem(
-        name = "Domyos2",
-        id = "123",
-        price = 2000f,
-        imageUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png",
-        brand = "Decathlon"
-    )
 }
