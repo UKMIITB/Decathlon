@@ -13,7 +13,7 @@ class HomeScreenItemSource @Inject constructor(
 ) : PagingSource<Int, HomeItem>() {
 
     companion object {
-        const val HOME_SCREEN_PAGE_SIZE = 20
+        const val HOME_SCREEN_PAGE_SIZE = 10
         const val PAGINATION_DEFAULT_KEY_VALUE = 0
     }
 
