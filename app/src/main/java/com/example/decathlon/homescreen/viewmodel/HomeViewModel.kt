@@ -56,8 +56,8 @@ class HomeViewModel @Inject constructor(
                 )
             ) {
                 HomeScreenItemSource(
-                    query = searchQuery.value,
-                    sort = activeSort.value.value,
+                    query = it.first,
+                    sort = it.second.value,
                     homeRepository = homeRepository
                 )
             }.flow.cachedIn(scope = viewModelScope)

@@ -68,11 +68,13 @@ import com.bumptech.glide.integration.compose.placeholder
 import com.example.decathlon.R
 import com.example.decathlon.homescreen.model.network.HomeItem
 import com.example.decathlon.homescreen.model.view.HomeScreenSortOptions
+import com.example.decathlon.homescreen.ui.destinations.DetailScreenDestination
 import com.example.decathlon.homescreen.viewmodel.HomeViewModel
 import com.example.decathlon.util.isEmpty
 import com.example.decathlon.util.shimmerEffect
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
@@ -80,6 +82,7 @@ import kotlinx.coroutines.launch
 @Destination
 @Composable
 fun HomeScreen(
+    navigator: DestinationsNavigator,
     homeViewModel: HomeViewModel = hiltViewModel()
 ) {
 
@@ -157,7 +160,10 @@ fun HomeScreen(
                     ) {
                         HomeScreenGridContent(
                             homeScreenItems = homeScreenItems,
-                            lazyGridState = lazyGridState
+                            lazyGridState = lazyGridState,
+                            onClick = {
+                                navigator.navigate(DetailScreenDestination)
+                            }
                         )
                     }
                 },
@@ -237,7 +243,8 @@ private fun TopBarContent(
 @Composable
 private fun HomeScreenGridContent(
     homeScreenItems: LazyPagingItems<HomeItem>,
-    lazyGridState: LazyGridState
+    lazyGridState: LazyGridState,
+    onClick: () -> Unit
 ) {
 
     if (homeScreenItems.isEmpty()) {
@@ -264,7 +271,10 @@ private fun HomeScreenGridContent(
         content = {
 
             items(count = homeScreenItems.itemCount) {
-                HomeScreenGridItem(homeItem = homeScreenItems[it]!!)
+                HomeScreenGridItem(
+                    homeItem = homeScreenItems[it]!!,
+                    onClick = onClick
+                )
             }
 
             homeScreenItems.apply {
@@ -289,11 +299,14 @@ private fun HomeScreenGridContent(
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-private fun HomeScreenGridItem(homeItem: HomeItem) {
+private fun HomeScreenGridItem(
+    homeItem: HomeItem,
+    onClick: () -> Unit
+) {
     Column(modifier = Modifier
         .fillMaxWidth()
         .border(width = 1.dp, color = Color.LightGray.copy(alpha = 0.4f))
-        .clickable { }) {
+        .clickable { onClick.invoke() }) {
 
         Box(
             modifier = Modifier
